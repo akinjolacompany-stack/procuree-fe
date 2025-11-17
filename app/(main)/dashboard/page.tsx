@@ -24,7 +24,7 @@ const upcoming = [
     focus: "Maize + Sorghum",
     date: "Closes in 2 days",
   },
-  {
+  { 
     name: "Lekki Farmers Collective",
     focus: "Vegetable bundle",
     date: "Closes in 5 days",

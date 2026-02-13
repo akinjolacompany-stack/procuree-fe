@@ -1,101 +1,105 @@
-import { Button } from "@/components/ui/button";
+﻿"use client";
 
-const highlights = [
-  {
-    title: "Active bulk orders",
-    metric: "8 ongoing",
-    description: "Groups are negotiating better rates across grains, produce, and household supplies.",
-  },
-  {
-    title: "Interested patrons",
-    metric: "142 patrons",
-    description: "Shoppers subscribed to updates this week — nurture them with transparent updates.",
-  },
-  {
-    title: "Fulfilment success",
-    metric: "96% on-time",
-    description: "Maintain consistency by confirming logistics partners two days before dispatch.",
-  },
+import DashBoardCard from "@/components/dashboard/card";
+import { DashboardSidePanel } from "@/components/dashboard/dashboard-side-panel";
+import { ItemsNavIcon } from "@/components/icons/items-nav-icon";
+import { MarketRunNavIcon } from "@/components/icons/market-run-nav-icon";
+import { MembersNavIcon } from "@/components/icons/members-nav-icon";
+import { TotalCostNav } from "@/components/icons/total-cost-icon";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { DataTable, type DataTableColumn } from "@/components/ui/table";
+import type { DashboardStatusFilter, MarketRunRow } from "@/store";
+import {
+  useDashboardFilters,
+  useDashboardRows,
+} from "@/store/hooks/use-dashboard-store";
+
+const STATUS_FILTER_OPTIONS: Array<{
+  label: string;
+  value: DashboardStatusFilter;
+}> = [
+  { label: "All Status", value: "all" },
+  { label: "Open", value: "Open" },
+  { label: "Closed", value: "Closed" },
 ];
 
-const upcoming = [
+const columns: DataTableColumn<MarketRunRow>[] = [
+  { id: "date", header: "Date", accessorKey: "date" },
+  { id: "description", header: "Description", accessorKey: "description" },
+  { id: "items", header: "Items", accessorKey: "items" },
+  { id: "members", header: "Members", accessorKey: "members" },
+  { id: "status", header: "Status", accessorKey: "status" },
+  { id: "totalAmount", header: "Total Amount", accessorKey: "totalAmount" },
   {
-    name: "Northern Grain Coalition",
-    focus: "Maize + Sorghum",
-    date: "Closes in 2 days",
-  },
-  { 
-    name: "Lekki Farmers Collective",
-    focus: "Vegetable bundle",
-    date: "Closes in 5 days",
-  },
-  {
-    name: "Port Harcourt Household Club",
-    focus: "Cleaning essentials",
-    date: "Closes in 8 days",
+    id: "actions",
+    header: "Actions",
+    accessorKey: "actions",
+    align: "center",
+    cellClassName: "font-medium text-slate-500",
   },
 ];
 
 export default function DashboardPage() {
+  const rows = useDashboardRows();
+
   return (
-    <div className="space-y-10">
-      <section className="flex flex-col gap-6 rounded-3xl bg-white p-8 shadow-xl">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-emerald-900">This week’s momentum</h1>
-            <p className="text-sm text-emerald-600">
-              Track how your collective is growing and where patrons are leaning in.
-            </p>
+    <>
+      <div>
+        <h3 className="text-xl font-semibold leading-7 text-[#1F2933]">
+          Dashboard
+        </h3>
+        <p className={"text-base font-medium leading-6 text-[#1F2933]"}>
+          {"Hello Atinuke!"}
+        </p>
+      </div>
+      <div className="grid grid-cols-8 gap-[24px] mt-[20px]">
+        <div className="col-span-6 mb-[0px]">
+          <div className="grid grid-cols-4 pb-[22px] gap-[35px]">
+            <DashBoardCard
+              className="col-span-1"
+              value={"₦ 123,992.00"}
+              text={"Total Est. Cost"}
+              icon={<TotalCostNav />}
+            />
+            <DashBoardCard
+              className="col-span-1"
+              value={"12"}
+              text={"Total Market Runs"}
+              icon={<MarketRunNavIcon />}
+            />
+            <DashBoardCard
+              className="col-span-1"
+              value={"77"}
+              text={"Total Items"}
+              icon={<ItemsNavIcon />}
+            />
+            <DashBoardCard
+              className="col-span-1"
+              value={"14"}
+              text={"Total Members"}
+              icon={<MembersNavIcon />}
+            />
           </div>
-          <div className="flex gap-3">
-            <Button variant="secondary">Invite patrons</Button>
-            <Button>Launch new request</Button>
-          </div>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {highlights.map((item) => (
-            <div key={item.title} className="rounded-2xl border border-emerald-100 bg-emerald-50 p-6">
-              <p className="text-xs font-semibold uppercase tracking-wide text-emerald-500">{item.title}</p>
-              <p className="mt-3 text-2xl font-semibold text-emerald-900">{item.metric}</p>
-              <p className="mt-2 text-sm text-emerald-600">{item.description}</p>
+          <Card className="px-[22px] py-[29px]">
+            <div className="mb-6 flex flex-wrap items-center justify-end gap-3">
+              <Button type="button">Create Market Runs</Button>
             </div>
-          ))}
-        </div>
-      </section>
 
-      <section className="grid gap-6 lg:grid-cols-[2fr,1fr]">
-        <div className="space-y-4 rounded-3xl bg-white p-8 shadow-xl">
-          <h2 className="text-lg font-semibold text-emerald-900">Upcoming group requests</h2>
-          <div className="space-y-3">
-            {upcoming.map((group) => (
-              <div key={group.name} className="rounded-2xl border border-emerald-100 bg-emerald-50 p-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-emerald-900">{group.name}</p>
-                    <p className="text-xs text-emerald-500">{group.focus}</p>
-                  </div>
-                  <span className="text-xs font-medium text-emerald-600">{group.date}</span>
-                </div>
-              </div>
-            ))}
-          </div>
+            <DataTable
+              columns={columns}
+              rows={rows}
+              rowKey="id"
+              pagination={{ pageSize: 6 }}
+              emptyState="No market runs match your filters."
+            />
+          </Card>
         </div>
 
-        <div className="space-y-4 rounded-3xl bg-white p-8 shadow-xl">
-          <h2 className="text-lg font-semibold text-emerald-900">Quick actions</h2>
-          <div className="space-y-3 text-sm text-emerald-600">
-            <p className="rounded-2xl bg-emerald-50 p-4">
-              Share updates to keep patrons informed about fulfilment timelines and delivery hubs.
-            </p>
-            <p className="rounded-2xl bg-emerald-50 p-4">
-              Sync with suppliers to confirm available stock and update price bands in your offers.
-            </p>
-            <p className="rounded-2xl bg-emerald-50 p-4">
-              Review patron feedback to identify additional items that could be bundled this month.
-            </p>
-          </div>
-        </div>
-      </section>
-    </div>
+        <Card className="col-span-2 p-4">
+          <DashboardSidePanel/>
+        </Card>
+      </div>
+    </>
   );
 }

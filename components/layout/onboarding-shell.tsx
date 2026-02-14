@@ -23,7 +23,7 @@ export function OnBoardingShell({ children }: { children: ReactNode }) {
         </div>
 
         <Image
-          src="/onBoardingImg.png"
+          src="/onboardingImg.png"
           alt="On Boarding Image"
           fill
           className=" rounded-[8px] px-[23px] py-[24px]"

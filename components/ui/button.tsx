@@ -44,7 +44,7 @@ const colorTokens: Record<
     ring: "focus-visible:ring-emerald-500",
   },
   blue: {
-    primary: "bg-blue-700 text-white hover:bg-blue-600",
+    primary: "bg-[#2E7DAF] text-white hover:opacity-50",
     secondary: "bg-blue-100 text-blue-900 hover:bg-blue-200",
     ghost: "bg-transparent text-blue-700 hover:bg-blue-50",
     outline: "border border-blue-300 text-blue-800 hover:bg-blue-50",
@@ -56,7 +56,7 @@ const colorTokens: Record<
     primary: "bg-slate-800 text-white hover:bg-slate-700",
     secondary: "bg-slate-100 text-slate-900 hover:bg-slate-200",
     ghost: "bg-transparent text-slate-700 hover:bg-slate-100",
-    outline: "border border-slate-300 text-slate-800 hover:bg-slate-100",
+    outline: "border border-[#6B7280] text-[#374151] hover:opacity-50",
     danger: "bg-red-600 text-white hover:bg-red-500",
     success: "bg-emerald-600 text-white hover:bg-emerald-500",
     ring: "focus-visible:ring-slate-500",

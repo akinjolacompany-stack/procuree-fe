@@ -1,39 +1,24 @@
 "use client";
 
-import type { ComponentType, SVGProps } from "react";
 import { useState } from "react";
-import {
-  DeliveryDatePanelIcon,
-  DescriptionPanelIcon,
-  ItemsPanelIcon,
-  ParticipantPanelIcon,
-  SurplusPanelIcon,
-  TrendDownIcon,
-  TrendUpIcon,
-  VolumePanelIcon,
-} from "@/components/icons/dashboard-panel-icons";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { IconWrapper } from "@/components/ui/iconwrapper";
+import { Modal, ModalBody } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { CalenderIcon } from "../icons/calender";
+import { ItemsNavIcon } from "../icons/items-nav-icon";
+import { MembersNavIcon } from "../icons/members-nav-icon";
+import { MessageIcon } from "../icons/message";
+import { MoneyIcon } from "../icons/money";
+import { Invite } from "./invite";
+import PanelDetailItem, { type PanelStatus, type SidePanelItem } from "./pannelDetailItem";
+import StatusHambuger from "./statusHambuger";
 
-type PanelIcon = ComponentType<SVGProps<SVGSVGElement>>;
-type TrendTone = "success" | "danger";
-
-type SidePanelItem = {
-  id: string;
-  label: string;
-  value: string;
-  icon: PanelIcon;
-  trend?: string;
-  trendTone?: TrendTone;
-};
-
-const MARKET_RUN_OPTIONS = [
-  { label: "Dry Goods - 11/09/2024", value: "dry-goods" },
-  { label: "Fruits - 21/01/2025", value: "fruits" },
-  { label: "Grains - 17/01/2025", value: "grains" },
+const MARKET_RUN_OPTIONS: Array<{ label: string; value: string; status: PanelStatus }> = [
+  { label: "Dry Goods - 11/09/2024", value: "dry-goods", status: "Reconciled" },
+  { label: "Fruits - 21/01/2025", value: "fruits", status: "Open" },
+  { label: "Grains - 17/01/2025", value: "grains", status: "Closed" },
 ];
 
 const SIDE_PANEL_ITEMS: SidePanelItem[] = [
@@ -41,19 +26,19 @@ const SIDE_PANEL_ITEMS: SidePanelItem[] = [
     id: "description",
     label: "Market Runs Description",
     value: "Dry Goods",
-    icon: DescriptionPanelIcon,
+    icon: MessageIcon,
   },
   {
     id: "delivery-date",
     label: "Market Runs Delivery Date",
     value: "11/09/2024",
-    icon: DeliveryDatePanelIcon,
+    icon: CalenderIcon,
   },
   {
     id: "participants",
     label: "Market Participant",
     value: "12",
-    icon: ParticipantPanelIcon,
+    icon: MembersNavIcon,
     trend: "93% participation",
     trendTone: "success",
   },
@@ -61,7 +46,7 @@ const SIDE_PANEL_ITEMS: SidePanelItem[] = [
     id: "volume",
     label: "Market Volume",
     value: "₦ 67,000.00",
-    icon: VolumePanelIcon,
+    icon: MoneyIcon,
     trend: "5.9% increase",
     trendTone: "success",
   },
@@ -69,7 +54,7 @@ const SIDE_PANEL_ITEMS: SidePanelItem[] = [
     id: "surplus",
     label: "Surplus/Deficit",
     value: "₦ 7,440.00",
-    icon: SurplusPanelIcon,
+    icon: MoneyIcon,
     trend: "4.1% decrease",
     trendTone: "danger",
   },
@@ -77,12 +62,15 @@ const SIDE_PANEL_ITEMS: SidePanelItem[] = [
     id: "items",
     label: "Market Items",
     value: "22",
-    icon: ItemsPanelIcon,
+    icon: ItemsNavIcon,
   },
 ];
 
 export function DashboardSidePanel({ className }: { className?: string }) {
   const [selectedRun, setSelectedRun] = useState(MARKET_RUN_OPTIONS[0].value);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const selectedRunOption =
+    MARKET_RUN_OPTIONS.find((option) => option.value === selectedRun) ?? MARKET_RUN_OPTIONS[0];
 
   return (
     <div className={cn("space-y-4", className)}>
@@ -95,18 +83,7 @@ export function DashboardSidePanel({ className }: { className?: string }) {
           className="h-10 rounded-[8px] border-slate-300 text-xs text-slate-500"
         />
 
-        <div className="mt-3 flex items-center justify-end gap-2">
-          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-600">
-            <span className="h-2 w-2 rounded-full bg-blue-600" aria-hidden="true" />
-            Reconciled
-          </span>
-          <span
-            className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full border border-slate-300 text-[9px] font-semibold text-slate-400"
-            aria-label="Reconciliation info"
-          >
-            i
-          </span>
-        </div>
+        <StatusHambuger text={selectedRunOption.status} />
 
         <div className="mt-3 space-y-3">
           {SIDE_PANEL_ITEMS.map((item) => (
@@ -125,49 +102,24 @@ export function DashboardSidePanel({ className }: { className?: string }) {
           color="slate"
           variant="secondary"
           size="xs"
+          onClick={() => setIsInviteModalOpen(true)}
           className="mt-3 h-7 min-w-[74px] rounded-[6px] bg-white px-3 text-[11px] font-medium text-slate-700 hover:bg-slate-100"
         >
           Invite
         </Button>
       </Card>
-    </div>
-  );
-}
 
-function PanelDetailItem({ item }: { item: SidePanelItem }) {
-  const Icon = item.icon;
-  const trendTone = item.trendTone ?? "success";
-
-  return (
-    <div className="flex items-start gap-2.5">
-      <IconWrapper
-        size="sm"
-        className="h-7 w-7 border border-slate-200 bg-white text-emerald-700 shadow-none"
+      <Modal
+        open={isInviteModalOpen}
+        onClose={() => setIsInviteModalOpen(false)}
+        title="Invite Member"
+        panelClassName="max-w-[560px]"
+        description="To invite someone to your team, simply enter their phone number, and we'll send them an invitation link to register. Alternatively, you can send the link directly to them, and once they register, they'll appear in the community."
       >
-        <Icon />
-      </IconWrapper>
-
-      <div className="min-w-0 flex-1">
-        <p className="text-[10px] leading-4 text-slate-400">{item.label}</p>
-        <div className="mt-0.5 flex items-center justify-between gap-2">
-          <p className="truncate text-sm leading-5 text-slate-700">{item.value}</p>
-          {item.trend ? (
-            <span
-              className={cn(
-                "inline-flex shrink-0 items-center gap-1 text-[10px] font-medium",
-                trendTone === "success" ? "text-emerald-600" : "text-red-500"
-              )}
-            >
-              {trendTone === "success" ? (
-                <TrendUpIcon className="h-3 w-3" />
-              ) : (
-                <TrendDownIcon className="h-3 w-3" />
-              )}
-              {item.trend}
-            </span>
-          ) : null}
-        </div>
-      </div>
+        <ModalBody className="space-y-4">
+          <Invite setIsInviteModalOpen={setIsInviteModalOpen} />
+        </ModalBody>
+      </Modal>
     </div>
   );
 }

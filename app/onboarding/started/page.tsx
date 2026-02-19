@@ -5,6 +5,7 @@ import { Form, Formik, type FormikHelpers } from "formik";
 import * as yup from "yup";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { FormikInput } from "@/components/ui/input";
 import { OnBoardingHeader } from "@/components/onboarding/header";
 
@@ -121,14 +122,13 @@ function PasswordVisibilityButton({
   onClick: () => void;
 }) {
   return (
-    <button
-      type="button"
+    <IconButton
+      label={visible ? "Hide password" : "Show password"}
       onClick={onClick}
       className="inline-flex items-center justify-center text-slate-500 transition-colors hover:text-slate-700"
-      aria-label={visible ? "Hide password" : "Show password"}
     >
       {visible ? <EyeIcon /> : <EyeOffIcon />}
-    </button>
+    </IconButton>
   );
 }
 

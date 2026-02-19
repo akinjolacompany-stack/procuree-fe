@@ -6,8 +6,10 @@ import { ItemsNavIcon } from "@/components/icons/items-nav-icon";
 import { MarketRunNavIcon } from "@/components/icons/market-run-nav-icon";
 import { MembersNavIcon } from "@/components/icons/members-nav-icon";
 import { TotalCostNav } from "@/components/icons/total-cost-icon";
+import { ViewIcon } from "@/components/icons/view";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { IconButton } from "@/components/ui/icon-button";
 import { DataTable, type DataTableColumn } from "@/components/ui/table";
 import type { DashboardStatusFilter, MarketRunRow } from "@/store";
 import {
@@ -34,9 +36,16 @@ const columns: DataTableColumn<MarketRunRow>[] = [
   {
     id: "actions",
     header: "Actions",
-    accessorKey: "actions",
     align: "center",
-    cellClassName: "font-medium text-slate-500",
+    cellClassName: "text-slate-500",
+    cell: (row) => (
+      <IconButton
+        label={`View ${row.description} market run`}
+        className="inline-flex items-center justify-center text-slate-500 transition-colors hover:text-slate-700"
+      >
+        <ViewIcon className="h-4 w-4" />
+      </IconButton>
+    ),
   },
 ];
 

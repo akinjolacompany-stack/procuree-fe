@@ -7,6 +7,7 @@ import { useState } from "react";
 import * as yup from "yup";
 import { OnBoardingHeader } from "@/components/onboarding/header";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { FormikInput } from "@/components/ui/input";
 import { ProcureeLogo } from "@/components/icons/procuree-logo";
 
@@ -76,14 +77,13 @@ export default function SignInPage() {
                   placeholder="**********"
                   autoComplete="current-password"
                   suffix={
-                    <button
-                      type="button"
+                    <IconButton
+                      label={showPassword ? "Hide password" : "Show password"}
                       onClick={() => setShowPassword((prev) => !prev)}
                       className="inline-flex items-center justify-center text-slate-500 transition-colors hover:text-slate-700"
-                      aria-label={showPassword ? "Hide password" : "Show password"}
                     >
                       {showPassword ? <EyeIcon /> : <EyeOffIcon />}
-                    </button>
+                    </IconButton>
                   }
                 />
 
@@ -151,4 +151,3 @@ function EyeOffIcon() {
     </svg>
   );
 }
-

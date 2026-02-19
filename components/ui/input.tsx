@@ -1,8 +1,9 @@
 "use client";
 
-import { forwardRef } from "react";
+import { forwardRef, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { useField } from "formik";
+import { IconButton } from "./icon-button";
 
 type NativeInputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, "prefix">;
 
@@ -13,6 +14,28 @@ export type InputProps = NativeInputProps & {
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ className, prefix, suffix, ...props }, ref) => {
+    const isDateInput = props.type === "date";
+    const inputRef = useRef<HTMLInputElement | null>(null);
+
+    const setInputRef = (node: HTMLInputElement | null) => {
+      inputRef.current = node;
+      if (typeof ref === "function") {
+        ref(node);
+      } else if (ref) {
+        ref.current = node;
+      }
+    };
+
+    const openDatePicker = () => {
+      if (!inputRef.current || !isDateInput) {
+        return;
+      }
+      inputRef.current.focus();
+      if (typeof inputRef.current.showPicker === "function") {
+        inputRef.current.showPicker();
+      }
+    };
+
     return (
       <div
         className={cn(
@@ -24,15 +47,29 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           <span className="pl-4 text-xl leading-none text-slate-900">{prefix}</span>
         ) : null}
         <input
-          ref={ref}
+          ref={setInputRef}
           className={cn(
             "w-full rounded-lg bg-transparent px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60",
             prefix ? "pl-3" : "",
-            suffix ? "pr-2" : ""
+            suffix ? "pr-2" : "",
+            isDateInput &&
+              "appearance-none [color-scheme:light] [&::-webkit-calendar-picker-indicator]:pointer-events-none [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-0"
           )}
           {...props}
         />
-        {suffix ? <span className="pr-3 text-slate-500">{suffix}</span> : null}
+        {suffix ? (
+          isDateInput ? (
+            <IconButton
+              label="Open date picker"
+              onClick={openDatePicker}
+              className="inline-flex items-center justify-center pr-3 text-slate-500"
+            >
+              {suffix}
+            </IconButton>
+          ) : (
+            <span className="pr-3 text-slate-500">{suffix}</span>
+          )
+        ) : null}
       </div>
     );
   }
@@ -77,9 +114,9 @@ export function FormikInput({
         {...props}
       />
       {showError ? (
-        <p className="text-xs text-red-600">{meta.error}</p>
+        <p className="text-[11px] text-red-600">{meta.error}</p>
       ) : helperText ? (
-        <p className="text-xs text-slate-500">{helperText}</p>
+        <p className="text-[11px] text-[#9CA3AF]">{helperText}</p>
       ) : null}
     </div>
   );

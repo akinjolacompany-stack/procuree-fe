@@ -35,6 +35,7 @@ export type DataTableProps<T extends TableRowData> = {
   rowKey?: keyof T | ((row: T, rowIndex: number) => string);
   pagination?: DataTablePagination;
   emptyState?: ReactNode;
+  variant?: "default" | "clean";
   className?: string;
   tableClassName?: string;
 };
@@ -45,6 +46,7 @@ export function DataTable<T extends TableRowData>({
   rowKey,
   pagination,
   emptyState = "No records available.",
+  variant = "default",
   className,
   tableClassName,
 }: DataTableProps<T>) {
@@ -73,13 +75,21 @@ export function DataTable<T extends TableRowData>({
       <div className="overflow-x-auto">
         <table className={cn("min-w-full border-separate border-spacing-0 text-sm", tableClassName)}>
           <thead>
-            <tr className="bg-slate-200 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <tr
+              className={cn(
+                "text-xs font-semibold uppercase tracking-wide",
+                variant === "default" && "bg-slate-200 text-slate-500",
+                variant === "clean" && "bg-[#D1D5DB] text-[#111827]",
+              )}
+            >
               {columns.map((column) => (
                 <th
                   key={column.id}
                   scope="col"
                   className={cn(
-                    "border-b border-r border-slate-300 px-4 py-3 last:border-r-0",
+                    "px-4 py-3",
+                    variant === "default" &&
+                      "border-b border-r border-slate-300 last:border-r-0",
                     alignStyles[column.align ?? "left"],
                     // "first:rounded-tl-lg last:rounded-tr-lg",
                     column.headerClassName
@@ -104,7 +114,9 @@ export function DataTable<T extends TableRowData>({
                   key={resolveRowKey(row, rowIndex, rowKey)}
                   className={cn(
                     "text-slate-700",
-                    rowIndex % 2 === 0 ? "bg-slate-50" : "bg-slate-100/70",
+                    variant === "default" &&
+                      (rowIndex % 2 === 0 ? "bg-slate-50" : "bg-slate-100/70"),
+                    variant === "clean" && "bg-white",
                     "last:border-b-0"
                   )}
                 >
@@ -112,7 +124,9 @@ export function DataTable<T extends TableRowData>({
                     <td
                       key={column.id}
                       className={cn(
-                        "border-b border-r border-slate-200 px-4 py-3 align-middle last:border-r-0",
+                        "px-4 py-3 align-middle",
+                        variant === "default" &&
+                          "border-b border-r border-slate-200 last:border-r-0",
                         alignStyles[column.align ?? "left"],
                         column.cellClassName
                       )}
@@ -226,4 +240,3 @@ function getPaginationItems(currentPage: number, totalPages: number): Pagination
 
   return [1, "ellipsis", currentPage - 1, currentPage, currentPage + 1, "ellipsis", totalPages];
 }
-

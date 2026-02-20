@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import MarketRunDetailsPage from "./details/page";
 
 export default function MarketRunIndexPage() {
-  redirect("/market-run/details");
+  return <MarketRunDetailsPage />;
 }

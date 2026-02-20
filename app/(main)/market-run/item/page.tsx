@@ -237,13 +237,6 @@ export default function MarketRunItemsPage() {
                     >
                       {isSubmitting ? "Adding..." : "Add"}
                     </Button>
-
-                    <Button
-                      type="button"
-                      onClick={() => router.push("/market-run/review")}
-                    >
-                      Next : Review
-                    </Button>
                   </div>
                 </Form>
               );
@@ -269,7 +262,8 @@ export default function MarketRunItemsPage() {
                       {item.name}
                     </p>
                     <p className="mt-1 text-sm font-medium text-[#1F2933]">
-                      {formatNaira(item.unitPrice)} <span className="text-[#9CA3AF]">per</span> Cup
+                      {formatNaira(item.unitPrice)}{" "}
+                      <span className="text-[#9CA3AF]">per</span> Cup
                     </p>
                   </div>
                   <IconButton
@@ -286,6 +280,29 @@ export default function MarketRunItemsPage() {
             )}
           </div>
         </aside>
+      </div>
+
+      <div className="pt-6">
+        <div className="border-t border-slate-200 pt-6">
+          <div className="flex items-center justify-end gap-5">
+            <Button
+              type="button"
+              color="slate"
+              variant="outline"
+              className="w-[200px]"
+              // onClick={() => resetForm()}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              className="w-[200px]"
+              onClick={() => router.push("/market-run/review")}
+            >
+              Next : Review
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );

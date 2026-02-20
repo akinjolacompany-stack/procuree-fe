@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { FormikInput } from "@/components/ui/input";
 import { FormikTextArea } from "@/components/ui/textarea";
 import { Form, Formik, FormikHelpers } from "formik";
-import type { SetStateAction } from "react";
 import * as yup from "yup";
 
 type AddCategoryFormValues = {
@@ -25,18 +24,14 @@ const addCategoryValidationSchema = yup.object({
     .max(1000, "Description must not exceed 1000 characters"),
 });
 
-export function CategoryForm({
-  setIsInviteModalOpen,
-}: {
-  setIsInviteModalOpen: (value: SetStateAction<boolean>) => void;
-}) {
+export function CategoryForm({ onClose }: { onClose: () => void }) {
   function handleAddCategorySubmit(
     _values: AddCategoryFormValues,
     { setSubmitting, resetForm }: FormikHelpers<AddCategoryFormValues>,
   ) {
     setSubmitting(false);
     resetForm();
-    setIsInviteModalOpen(false);
+    onClose();
   }
 
   return (

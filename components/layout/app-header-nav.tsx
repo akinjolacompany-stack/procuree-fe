@@ -18,7 +18,7 @@ export const APP_HEADER_NAV_ITEMS: AppHeaderNavItemConfig[] = [
   { href: "/dashboard", label: "Dashboard", icon: DashboardNavIcon },
   { href: "/market-run", label: "Market Run", icon: MarketRunNavIcon },
   { href: "/items", label: "Items", icon: ItemsNavIcon },
-  { href: "/dashboard/members", label: "Members", icon: MembersNavIcon },
+  { href: "/members", label: "Members", icon: MembersNavIcon },
 ];
 
 type AppHeaderNavProps = {

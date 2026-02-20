@@ -5,6 +5,8 @@ import { Form, Formik, type FormikHelpers } from "formik";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import * as yup from "yup";
+import { getApiErrorMessage } from "@/lib/api/error";
+import { useSignInMutation } from "@/lib/api/users";
 import { OnBoardingHeader } from "@/components/onboarding/header";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
@@ -22,25 +24,28 @@ const initialValues: SignInFormValues = {
 };
 
 const signInValidationSchema = yup.object({
-  email: yup
-    .string()
-    .trim()
-    .email("Enter a valid email address")
-    .required("Email is required"),
+  email: yup.string().trim().required("Email is required"),
   password: yup.string().required("Password is required"),
 });
 
 export default function SignInPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+  const signInMutation = useSignInMutation();
 
   async function handleSubmit(
-    _values: SignInFormValues,
-    { setSubmitting }: FormikHelpers<SignInFormValues>
+    values: SignInFormValues,
+    { setSubmitting, setStatus }: FormikHelpers<SignInFormValues>
   ) {
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    setSubmitting(false);
-    router.push("/dashboard");
+    setStatus(undefined);
+    try {
+      await signInMutation.mutateAsync(values);
+      router.push("/dashboard");
+    } catch (error) {
+      setStatus(getApiErrorMessage(error, "Unable to sign in."));
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -59,7 +64,7 @@ export default function SignInPage() {
           validationSchema={signInValidationSchema}
           onSubmit={handleSubmit}
         >
-          {({ isSubmitting }) => (
+          {({ isSubmitting, status }) => (
             <Form className="space-y-6">
               <FormikInput
                 name="email"
@@ -94,9 +99,19 @@ export default function SignInPage() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? "Logging in..." : "Login"}
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isSubmitting || signInMutation.isPending}
+              >
+                {isSubmitting || signInMutation.isPending
+                  ? "Logging in..."
+                  : "Login"}
               </Button>
+
+              {typeof status === "string" ? (
+                <p className="text-sm text-red-600">{status}</p>
+              ) : null}
 
               <p className="text-center text-sm text-slate-400">
                 Don&apos;t have an account?{" "}

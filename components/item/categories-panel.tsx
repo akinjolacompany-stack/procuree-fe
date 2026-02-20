@@ -2,9 +2,11 @@
 
 import { DeleteIcon } from "@/components/icons/delete";
 import { EditIcon } from "@/components/icons/edit";
+import { CategoryForm } from "@/components/item/category/form";
 import { Card } from "@/components/ui/card";
 import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
+import { Modal, ModalBody } from "@/components/ui/modal";
 import { cn } from "@/lib/utils";
 import { useMemo, useState } from "react";
 import { SearchIcon } from "./search-icon";
@@ -29,6 +31,7 @@ type CategoriesPanelProps = {
 export function CategoriesPanel({ className }: CategoriesPanelProps) {
   const [categorySearch, setCategorySearch] = useState("");
   const [activeCategoryId, setActiveCategoryId] = useState(CATEGORY_ROWS[0].id);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
   const filteredCategories = useMemo(() => {
     const query = categorySearch.trim().toLowerCase();
@@ -54,6 +57,7 @@ export function CategoriesPanel({ className }: CategoriesPanelProps) {
         </p>
         <button
           type="button"
+          onClick={() => setIsCategoryModalOpen(true)}
           className="text-[10px] font-bold uppercase tracking-wide text-[#2E7DAF] underline decoration-[#2E7DAF] decoration-[1.5px] underline-offset-2"
         >
           Add Category
@@ -118,6 +122,17 @@ export function CategoriesPanel({ className }: CategoriesPanelProps) {
           </li>
         )}
       </ul>
+
+      <Modal
+        open={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+        title="Add Category"
+        panelClassName="max-w-[560px]"
+      >
+        <ModalBody className="space-y-4">
+          <CategoryForm onClose={() => setIsCategoryModalOpen(false)} />
+        </ModalBody>
+      </Modal>
     </Card>
   );
 }

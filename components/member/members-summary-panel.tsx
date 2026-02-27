@@ -9,7 +9,6 @@ import { ActiveMemberIcon } from "../icons/active-member";
 import { InActiveMemberIcon } from "../icons/inactive-member";
 import { PendingMemberIcon } from "../icons/pending-member";
 import {
-  AverageParticipation,
   AverageParticipationIcon,
 } from "../icons/average-participation";
 
@@ -19,7 +18,7 @@ type SummaryItem = {
   id: string;
   label: string;
   value: string;
-  icon: JSX.Element;
+  icon: React.ReactNode ;
 };
 
 const SUMMARY_ITEMS: SummaryItem[] = [

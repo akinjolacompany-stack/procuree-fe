@@ -1,9 +1,15 @@
+"use client";
+
+import { useItemFlowStore } from "@/store";
 
 export default function ItemHeader() {
+  const { itemFlowMode } = useItemFlowStore();
+  const title = itemFlowMode === "update" ? "Edit Item" : "Add New Item";
+
   return (
     <div>
       <h2 className="text-[20px] font-[600] leading-8 text-[#1F2933]">
-        Add New Item
+        {title}
       </h2>
 
       <div className="mt-2 rounded-[6px] border border-l-[8px] border-[#2563EB] bg-[#EEF4FF] px-3 py-2">

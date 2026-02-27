@@ -8,10 +8,12 @@ import { Card } from "@/components/ui/card";
 import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
 import { DataTable, type DataTableColumn } from "@/components/ui/table";
+import { useCommoditiesQuery, type Commodity, type CommodityUnit } from "@/lib/api/commodities";
+import { getApiErrorMessage } from "@/lib/api/error";
 import { cn } from "@/lib/utils";
-import Image from "next/image";
+import { useItemFlowStore } from "@/store";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { SearchIcon } from "./search-icon";
 
 type ItemTone = "amber" | "sky" | "orange" | "slate" | "emerald" | "indigo";
@@ -22,25 +24,11 @@ type ItemRow = {
   name: string;
   category: string;
   base: string;
-  imageSrc?: string;
-  tone?: ItemTone;
+  commodity: Commodity;
 };
 
-const ITEM_SEEDS: Array<Omit<ItemRow, "id" | "serial">> = [
-  {
-    name: "Rice",
-    category: "Grains",
-    base: "Cups",
-    imageSrc: "/rice.svg",
-    tone: "amber",
-  },
-  { name: "Beans", category: "Grains", base: "Cups", tone: "slate" },
-  { name: "Millet", category: "Grains", base: "Cups", tone: "orange" },
-  { name: "Corn", category: "Grains", base: "Cups", tone: "amber" },
-  { name: "Tigernuts", category: "Nuts", base: "Cups", tone: "emerald" },
-  { name: "Groundnut Oil", category: "Oils", base: "Bottle", tone: "indigo" },
-  { name: "Peak Milk", category: "Beverage", base: "Sachet", tone: "sky" },
-];
+const SEARCH_DEBOUNCE_MS = 300;
+const ITEMS_PAGE_SIZE = 7;
 
 const THUMBNAIL_TONE_STYLES: Record<ItemTone, string> = {
   amber: "bg-amber-100 text-amber-800",
@@ -51,97 +39,70 @@ const THUMBNAIL_TONE_STYLES: Record<ItemTone, string> = {
   indigo: "bg-indigo-100 text-indigo-800",
 };
 
-const ITEMS: ItemRow[] = Array.from({ length: 10 }, (_, pageIndex) =>
-  ITEM_SEEDS.map((seed, seedIndex) => ({
-    ...seed,
-    id: `${seed.name.toLowerCase().replace(/\s+/g, "-")}-${pageIndex + 1}-${seedIndex + 1}`,
-    serial: pageIndex * ITEM_SEEDS.length + seedIndex + 1,
-  })),
-).flat();
+function toItemTone(itemName: string): ItemTone {
+  const tones: ItemTone[] = ["amber", "sky", "orange", "slate", "emerald", "indigo"];
+  const hash = itemName
+    .split("")
+    .reduce((sum, character) => sum + character.charCodeAt(0), 0);
+  return tones[hash % tones.length];
+}
 
-const ITEM_COLUMNS: DataTableColumn<ItemRow>[] = [
-  {
-    id: "serial",
-    header: "S/N",
-    accessorKey: "serial",
-    headerClassName: "w-[72px]",
-    cellClassName: "text-[#667085]",
-  },
-  {
-    id: "name",
-    header: "Name",
-    cell: (row) => (
-      <div className="flex items-center gap-2.5">
-        <ItemThumbnail item={row} />
-        <span className="font-medium text-[#344054]">{row.name}</span>
-      </div>
-    ),
-    cellClassName: "min-w-[160px]",
-  },
-  {
-    id: "category",
-    header: "Category",
-    accessorKey: "category",
-    cellClassName: "text-[#475467]",
-  },
-  {
-    id: "base",
-    header: "Base",
-    accessorKey: "base",
-    cellClassName: "text-[#475467]",
-  },
-  {
-    id: "actions",
-    header: "Action",
-    align: "center",
-    cell: (row) => (
-      <div className="flex items-center justify-center gap-2 text-[#98A2B3]">
-        <IconButton
-          label={`View ${row.name}`}
-          className="inline-flex items-center justify-center rounded-sm text-[#98A2B3] transition-colors hover:text-[#667085]"
-        >
-          <ViewIcon className="h-4 w-4" />
-        </IconButton>
-        <IconButton
-          label={`Edit ${row.name}`}
-          className="inline-flex items-center justify-center rounded-sm transition-opacity hover:opacity-80"
-        >
-          <EditIcon />
-        </IconButton>
-        <IconButton
-          label={`Delete ${row.name}`}
-          className="inline-flex items-center justify-center rounded-sm transition-opacity hover:opacity-80"
-        >
-          <DeleteIcon className="h-4 w-4" />
-        </IconButton>
-      </div>
-    ),
-    cellClassName: "w-[130px]",
-  },
-];
-
-function ItemThumbnail({ item }: { item: ItemRow }) {
-  if (item.imageSrc) {
-    return (
-      <Image
-        src={item.imageSrc}
-        alt={item.name}
-        width={22}
-        height={22}
-        className="h-[22px] w-[22px] rounded-[6px] object-cover"
-      />
-    );
+function deriveBaseUnit(units: CommodityUnit[]): CommodityUnit | null {
+  if (!units.length) {
+    return null;
   }
+
+  const explicitBaseUnit =
+    units.find((unit) => unit.isBaseUnit) ??
+    units.find((unit) => unit.baseUnitId === null) ??
+    units.find((unit) => Number(unit.conversionFactor) === 1);
+
+  if (explicitBaseUnit) {
+    return explicitBaseUnit;
+  }
+
+  const referencedUnitIds = new Set(
+    units
+      .map((unit) => unit.baseUnitId)
+      .filter((baseUnitId): baseUnitId is string => Boolean(baseUnitId)),
+  );
+
+  const referencedBaseUnit = units.find((unit) => referencedUnitIds.has(unit.id));
+  return referencedBaseUnit ?? units[0];
+}
+
+function toConversionRows(
+  units: CommodityUnit[],
+  baseUnit: CommodityUnit | null,
+) {
+  const filteredUnits = baseUnit
+    ? units.filter((unit) => unit.id !== baseUnit.id)
+    : units;
+
+  return filteredUnits.map((unit) => {
+    const conversionFactor = Number(unit.conversionFactor);
+    return {
+      quantity:
+        Number.isFinite(conversionFactor) && conversionFactor > 0
+          ? String(conversionFactor)
+          : "1",
+      unitName: unit.name,
+    };
+  });
+}
+
+function ItemThumbnail({ itemName }: { itemName: string }) {
+  const tone = toItemTone(itemName);
 
   return (
     <span
       className={cn(
         "inline-flex h-[22px] w-[22px] items-center justify-center rounded-[6px] text-[10px] font-semibold",
-        THUMBNAIL_TONE_STYLES[item.tone ?? "slate"],
+        THUMBNAIL_TONE_STYLES[tone],
       )}
       aria-hidden="true"
     >
-      {item.name.charAt(0)}
+      {itemName.charAt(0)}
     </span>
   );
 }
@@ -152,21 +113,143 @@ type ItemsPanelProps = {
 
 export function ItemsPanel({ className }: ItemsPanelProps) {
   const router = useRouter();
+  const { resetItemFlow, startUpdateItemFlow } = useItemFlowStore();
   const [itemSearch, setItemSearch] = useState("");
+  const [debouncedItemSearch, setDebouncedItemSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const filteredItems = useMemo(() => {
-    const query = itemSearch.trim().toLowerCase();
-    if (!query) {
-      return ITEMS;
-    }
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedItemSearch(itemSearch);
+    }, SEARCH_DEBOUNCE_MS);
 
-    return ITEMS.filter(
-      (item) =>
-        item.name.toLowerCase().includes(query) ||
-        item.category.toLowerCase().includes(query) ||
-        item.base.toLowerCase().includes(query),
-    );
+    return () => window.clearTimeout(timeoutId);
   }, [itemSearch]);
+
+  const commoditiesQuery = useCommoditiesQuery({
+    page: currentPage,
+    perPage: ITEMS_PAGE_SIZE,
+    searchQuery: debouncedItemSearch,
+  });
+
+  const commodityPageData = commoditiesQuery.data?.data;
+  const commodities = useMemo(
+    () => commodityPageData?.data ?? [],
+    [commodityPageData?.data],
+  );
+  const totalPages = Math.max(1, commodityPageData?.totalPages ?? 1);
+  const activePage = Math.max(1, Math.min(currentPage, totalPages));
+
+  const itemRows = useMemo<ItemRow[]>(
+    () =>
+      commodities.map((commodity, index) => ({
+        id: commodity.id,
+        serial: (activePage - 1) * ITEMS_PAGE_SIZE + index + 1,
+        name: commodity.name,
+        category: commodity.category?.name ?? "Uncategorized",
+        base: deriveBaseUnit(commodity.units)?.name ?? "-",
+        commodity,
+      })),
+    [commodities, activePage],
+  );
+
+  const itemsErrorMessage = commoditiesQuery.isError
+    ? getApiErrorMessage(commoditiesQuery.error, "Unable to fetch items.")
+    : null;
+
+  const handleStartCreateItemFlow = useCallback(() => {
+    resetItemFlow();
+    router.push("/items/details");
+  }, [resetItemFlow, router]);
+
+  const handleStartUpdateItemFlow = useCallback((itemRow: ItemRow) => {
+    const baseUnit = deriveBaseUnit(itemRow.commodity.units);
+    const conversionRows = toConversionRows(itemRow.commodity.units, baseUnit);
+
+    startUpdateItemFlow({
+      commodityId: itemRow.commodity.id,
+      details: {
+        itemName: itemRow.commodity.name,
+        description: itemRow.commodity.description ?? "",
+        categoryId: itemRow.commodity.categoryId ?? "",
+        baseUnitId: baseUnit?.name ?? "",
+      },
+      conversions: conversionRows,
+    });
+
+    router.push(`/items/${itemRow.commodity.id}/details`);
+  }, [router, startUpdateItemFlow]);
+
+  const itemColumns = useMemo<DataTableColumn<ItemRow>[]>(
+    () => [
+      {
+        id: "serial",
+        header: "S/N",
+        accessorKey: "serial",
+        headerClassName: "w-[72px]",
+        cellClassName: "text-[#667085]",
+      },
+      {
+        id: "name",
+        header: "Name",
+        cell: (row) => (
+          <div className="flex items-center gap-2.5">
+            <ItemThumbnail itemName={row.name} />
+            <span className="font-medium text-[#344054]">{row.name}</span>
+          </div>
+        ),
+        cellClassName: "min-w-[160px]",
+      },
+      {
+        id: "category",
+        header: "Category",
+        accessorKey: "category",
+        cellClassName: "text-[#475467]",
+      },
+      {
+        id: "base",
+        header: "Base",
+        accessorKey: "base",
+        cellClassName: "text-[#475467]",
+      },
+      {
+        id: "actions",
+        header: "Action",
+        align: "center",
+        cell: (row) => (
+          <div className="flex items-center justify-center gap-2 text-[#98A2B3]">
+            <IconButton
+              label={`View ${row.name}`}
+              className="inline-flex items-center justify-center rounded-sm text-[#98A2B3] transition-colors hover:text-[#667085]"
+            >
+              <ViewIcon className="h-4 w-4" />
+            </IconButton>
+            <IconButton
+              label={`Edit ${row.name}`}
+              onClick={() => handleStartUpdateItemFlow(row)}
+              className="inline-flex items-center justify-center rounded-sm transition-opacity hover:opacity-80"
+            >
+              <EditIcon />
+            </IconButton>
+            <IconButton
+              label={`Delete ${row.name}`}
+              className="inline-flex items-center justify-center rounded-sm transition-opacity hover:opacity-80"
+            >
+              <DeleteIcon className="h-4 w-4" />
+            </IconButton>
+          </div>
+        ),
+        cellClassName: "w-[130px]",
+      },
+    ],
+    [handleStartUpdateItemFlow],
+  );
+
+  const emptyStateMessage = itemsErrorMessage
+    ? itemsErrorMessage
+    : commoditiesQuery.isPending
+      ? "Loading items..."
+      : "No items match your search.";
 
   return (
     <Card
@@ -177,7 +260,10 @@ export function ItemsPanel({ className }: ItemsPanelProps) {
           <p className="text-[10px] font-bold uppercase text-[#98A2B3]">Items</p>
           <Input
             value={itemSearch}
-            onChange={(event) => setItemSearch(event.target.value)}
+            onChange={(event) => {
+              setCurrentPage(1);
+              setItemSearch(event.target.value);
+            }}
             placeholder="search..."
             suffix={<SearchIcon className="h-4 w-4" />}
             className="mt-2 h-9 rounded-[6px] border-[#D0D5DD]"
@@ -187,7 +273,7 @@ export function ItemsPanel({ className }: ItemsPanelProps) {
 
         <Button
           type="button"
-          onClick={() => router.push("/items/details")}
+          onClick={handleStartCreateItemFlow}
           className="h-10 min-w-[104px] rounded-[8px]"
         >
           Add Item
@@ -196,14 +282,24 @@ export function ItemsPanel({ className }: ItemsPanelProps) {
 
       <div className="mt-5 overflow-hidden rounded-[8px] border border-[#E4E7EC]">
         <DataTable
-          columns={ITEM_COLUMNS}
-          rows={filteredItems}
+          columns={itemColumns}
+          rows={itemsErrorMessage ? [] : itemRows}
           rowKey="id"
-          pagination={{ pageSize: 7 }}
+          pagination={{
+            mode: "server",
+            currentPage: activePage,
+            totalPages,
+            onPageChange: setCurrentPage,
+            isLoading: commoditiesQuery.isFetching,
+          }}
           tableClassName="text-xs"
-          emptyState="No items match your search."
+          emptyState={emptyStateMessage}
         />
       </div>
+
+      {commoditiesQuery.isFetching && !commoditiesQuery.isPending ? (
+        <p className="mt-2 text-[11px] text-[#98A2B3]">Updating items...</p>
+      ) : null}
     </Card>
   );
 }

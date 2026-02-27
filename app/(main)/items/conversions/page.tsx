@@ -1,13 +1,21 @@
 "use client";
 
-import { CautionIcon } from "@/components/icons/caution";
 import { DeleteIcon } from "@/components/icons/delete";
 import ItemHeader from "@/components/item/item-add-item-header";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
-import { FormikInput, FormikSelect } from "@/components/ui/input";
+import { FormikInput } from "@/components/ui/input";
+import {
+  useCreateCommodityMutation,
+  useUpdateCommodityMutation,
+  type CommodityUnitPayload,
+} from "@/lib/api/commodities";
+import { getApiErrorMessage } from "@/lib/api/error";
+import { useItemFlowStore } from "@/store";
+import { useSnackbar } from "@/store/hooks/use-snackbar";
 import { FieldArray, Form, Formik, type FormikHelpers } from "formik";
 import { useRouter } from "next/navigation";
+import { useEffect, useMemo } from "react";
 import * as yup from "yup";
 
 type ConversionRow = {
@@ -18,15 +26,6 @@ type ConversionRow = {
 type ItemConversionFormValues = {
   conversions: ConversionRow[];
 };
-
-const initialValues: ItemConversionFormValues = {
-  conversions: [{ quantity: "4", unitName: "" }],
-};
-
-const quantityOptions = Array.from({ length: 20 }, (_, index) => {
-  const value = String(index + 1);
-  return { label: value, value };
-});
 
 const validationSchema = yup.object({
   conversions: yup
@@ -53,24 +52,146 @@ function createEmptyRow(quantity = "1"): ConversionRow {
   return { quantity, unitName: "" };
 }
 
-function getConversionHint(row: ConversionRow): string {
+function getConversionHint(row: ConversionRow, baseUnitId: string): string {
   const unitName = row.unitName.trim() || "unit";
   const quantityValue = Number(row.quantity);
   const quantity =
     Number.isInteger(quantityValue) && quantityValue > 0 ? quantityValue : 1;
-  return `means 1 ${unitName} = ${quantity} cup`;
+  const normalizedBaseUnitName = baseUnitId.trim() || "base unit";
+  return `means 1 ${unitName} = ${quantity} ${normalizedBaseUnitName.toLowerCase()}`;
+}
+
+function buildCommodityUnits(
+  conversions: ConversionRow[],
+  baseUnitId: string,
+): CommodityUnitPayload[] {
+  const normalizedBaseUnitName = baseUnitId.trim();
+  const normalizedConversions = conversions
+    .map((row) => ({
+      unitName: row.unitName.trim(),
+      quantity: Number(row.quantity),
+    }))
+    .filter(
+      (row) => row.unitName.length > 0 && Number.isFinite(row.quantity) && row.quantity > 0,
+    );
+
+  return [
+    {
+      name: normalizedBaseUnitName,
+      type: "SCIENTIFIC",
+      conversionFactor: 1,
+      isBaseUnit: true,
+    },
+    ...normalizedConversions.map((row) => ({
+      name: row.unitName,
+      type: "SCIENTIFIC" as const,
+      conversionFactor: row.quantity,
+      isBaseUnit: false,
+    })),
+  ];
 }
 
 export default function ItemConversionsPage() {
   const router = useRouter();
+  const { showSuccess, showError } = useSnackbar();
+  const createCommodityMutation = useCreateCommodityMutation();
+  const updateCommodityMutation = useUpdateCommodityMutation();
+  const {
+    itemFlowMode,
+    editingCommodityId,
+    itemDetailsDraft,
+    itemConversionsDraft,
+    setItemConversionsDraft,
+    resetItemFlow,
+  } = useItemFlowStore();
+
+  const isMutationPending =
+    createCommodityMutation.isPending || updateCommodityMutation.isPending;
+
+  const initialValues = useMemo<ItemConversionFormValues>(
+    () => ({
+      conversions: (
+        itemConversionsDraft.length
+          ? itemConversionsDraft
+          : [{ quantity: "4", unitName: "" }]
+      ).map((row) => ({
+        quantity: row.quantity,
+        unitName: row.unitName,
+      })),
+    }),
+    [itemConversionsDraft],
+  );
+
+  useEffect(() => {
+    if (
+      itemDetailsDraft.itemName.trim() &&
+      itemDetailsDraft.categoryId.trim() &&
+      itemDetailsDraft.baseUnitId.trim()
+    ) {
+      return;
+    }
+
+    const fallbackDetailsRoute =
+      itemFlowMode === "update" && editingCommodityId
+        ? `/items/${editingCommodityId}/details`
+        : "/items/details";
+    router.replace(fallbackDetailsRoute);
+  }, [
+    editingCommodityId,
+    itemDetailsDraft.baseUnitId,
+    itemDetailsDraft.categoryId,
+    itemDetailsDraft.itemName,
+    itemFlowMode,
+    router,
+  ]);
 
   async function handleSubmit(
-    _values: ItemConversionFormValues,
+    values: ItemConversionFormValues,
     { setSubmitting }: FormikHelpers<ItemConversionFormValues>,
   ) {
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    setSubmitting(false);
-    router.push("/items");
+    try {
+      setItemConversionsDraft(values.conversions);
+
+      const normalizedItemName = itemDetailsDraft.itemName.trim();
+      const normalizedDescription =
+        itemDetailsDraft.description.trim() || normalizedItemName;
+      const normalizedCategoryId = itemDetailsDraft.categoryId.trim();
+      const normalizedBaseUnitId = itemDetailsDraft.baseUnitId.trim();
+
+      const payload = {
+        name: normalizedItemName,
+        description: normalizedDescription,
+        categoryId: normalizedCategoryId,
+        commodityUnits: buildCommodityUnits(
+          values.conversions,
+          normalizedBaseUnitId,
+        ),
+      };
+
+      if (itemFlowMode === "update" && editingCommodityId) {
+        const response = await updateCommodityMutation.mutateAsync({
+          id: editingCommodityId,
+          ...payload,
+        });
+
+        showSuccess(response.message || "Item updated successfully.");
+      } else {
+        const response = await createCommodityMutation.mutateAsync(payload);
+        showSuccess(response.message || "Item created successfully.");
+      }
+
+      resetItemFlow();
+      router.push("/items");
+    } catch (error) {
+      showError(
+        getApiErrorMessage(error, "Unable to save item."),
+        {
+          title: itemFlowMode === "update" ? "Update Failed" : "Creation Failed",
+        },
+      );
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -81,6 +202,7 @@ export default function ItemConversionsPage() {
         initialValues={initialValues}
         validationSchema={validationSchema}
         onSubmit={handleSubmit}
+        enableReinitialize
       >
         {({
           values,
@@ -101,7 +223,10 @@ export default function ItemConversionsPage() {
                       >
                         <FormikInput
                           name={`conversions.${index}.quantity`}
-                          helperText={getConversionHint(row)}
+                          helperText={getConversionHint(
+                            row,
+                            itemDetailsDraft.baseUnitId,
+                          )}
                         />
 
                         <span className="pt-3 text-base font-semibold text-[#1F2933]">
@@ -169,17 +294,28 @@ export default function ItemConversionsPage() {
                   type="button"
                   color="slate"
                   variant="outline"
-                  onClick={() => router.push("/items/details")}
+                  onClick={() => {
+                    setItemConversionsDraft(values.conversions);
+                    const detailsRoute =
+                      itemFlowMode === "update" && editingCommodityId
+                        ? `/items/${editingCommodityId}/details`
+                        : "/items/details";
+                    router.push(detailsRoute);
+                  }}
                   className="w-full"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
-                  disabled={!isValid || isSubmitting}
+                  disabled={!isValid || isSubmitting || isMutationPending}
                   className="w-full"
                 >
-                  {isSubmitting ? "Saving..." : "Save Item"}
+                  {isSubmitting || isMutationPending
+                    ? "Saving..."
+                    : itemFlowMode === "update"
+                      ? "Update Item"
+                      : "Save Item"}
                 </Button>
               </div>
             </div>

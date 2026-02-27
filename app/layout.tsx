@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ReactQueryProvider } from "@/components/providers/react-query-provider";
+import { SnackbarHost } from "@/components/layout/snackbar-host";
 import "./globals.css";
 
 // const geistSans = Geist({
@@ -31,7 +32,10 @@ export default function RootLayout({
       <body
         // className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ReactQueryProvider>{children}</ReactQueryProvider>
+        <ReactQueryProvider>
+          {children}
+          <SnackbarHost />
+        </ReactQueryProvider>
       </body>
     </html>
   );

@@ -6,9 +6,9 @@ import { ItemFlowShell } from "./item-flow-shell";
 
 export function ItemsShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const isItemsFlowRoute =
-    pathname.startsWith("/items/details") ||
-    pathname.startsWith("/items/conversions");
+  const isItemsFlowRoute = /^\/items(?:\/[^/]+)?\/(?:details|conversions)(?:\/|$)/.test(
+    pathname,
+  );
 
   if (!isItemsFlowRoute) {
     return <>{children}</>;

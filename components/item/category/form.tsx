@@ -1,21 +1,26 @@
 "use client";
+import {
+  useCreateCategoryMutation,
+  useUpdateCategoryMutation,
+  type Category,
+} from "@/lib/api/categories";
+import { getApiErrorMessage } from "@/lib/api/error";
+import { useSnackbar } from "@/store/hooks/use-snackbar";
 import { Button } from "@/components/ui/button";
 import { FormikInput } from "@/components/ui/input";
 import { FormikTextArea } from "@/components/ui/textarea";
-import { Form, Formik, FormikHelpers } from "formik";
+import { Form, Formik, type FormikHelpers } from "formik";
+import { useMemo } from "react";
 import * as yup from "yup";
 
-type AddCategoryFormValues = {
+type CategoryFormValues = {
   categoryName: string;
   description: string;
 };
 
-const addCategoryInitialValues: AddCategoryFormValues = {
-  categoryName: "",
-  description: "",
-};
+type CategoryFormMode = "create" | "update";
 
-const addCategoryValidationSchema = yup.object({
+const categoryValidationSchema = yup.object({
   categoryName: yup.string().trim().required("Category name is required"),
   description: yup
     .string()
@@ -24,21 +29,81 @@ const addCategoryValidationSchema = yup.object({
     .max(1000, "Description must not exceed 1000 characters"),
 });
 
-export function CategoryForm({ onClose }: { onClose: () => void }) {
-  function handleAddCategorySubmit(
-    _values: AddCategoryFormValues,
-    { setSubmitting, resetForm }: FormikHelpers<AddCategoryFormValues>,
+type CategoryFormProps = {
+  onClose: () => void;
+  mode?: CategoryFormMode;
+  initialCategory?: Category | null;
+};
+
+export function CategoryForm({
+  onClose,
+  mode = "create",
+  initialCategory = null,
+}: CategoryFormProps) {
+  const { showSuccess, showError } = useSnackbar();
+  const createCategoryMutation = useCreateCategoryMutation();
+  const updateCategoryMutation = useUpdateCategoryMutation();
+
+  const isUpdateMode = mode === "update" && Boolean(initialCategory?.id);
+
+  const initialValues = useMemo<CategoryFormValues>(
+    () => ({
+      categoryName: initialCategory?.name ?? "",
+      description: initialCategory?.description ?? "",
+    }),
+    [initialCategory],
+  );
+
+  const isMutationPending =
+    createCategoryMutation.isPending || updateCategoryMutation.isPending;
+
+  async function handleCategorySubmit(
+    values: CategoryFormValues,
+    { setSubmitting, resetForm }: FormikHelpers<CategoryFormValues>,
   ) {
-    setSubmitting(false);
-    resetForm();
-    onClose();
+    try {
+      if (isUpdateMode && initialCategory) {
+        const response = await updateCategoryMutation.mutateAsync({
+          id: initialCategory.id,
+          name: values.categoryName.trim(),
+          description: values.description.trim(),
+        });
+
+        showSuccess(response.message || "Category updated successfully.");
+      } else {
+        const response = await createCategoryMutation.mutateAsync({
+          name: values.categoryName.trim(),
+          description: values.description.trim(),
+        });
+
+        showSuccess(response.message || "Category added successfully.");
+      }
+
+      resetForm();
+      onClose();
+    } catch (error) {
+      showError(
+        getApiErrorMessage(
+          error,
+          isUpdateMode
+            ? "Unable to update category."
+            : "Unable to add category.",
+        ),
+        {
+          title: isUpdateMode ? "Update Failed" : "Creation Failed",
+        },
+      );
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
     <Formik
-      initialValues={addCategoryInitialValues}
-      validationSchema={addCategoryValidationSchema}
-      onSubmit={handleAddCategorySubmit}
+      initialValues={initialValues}
+      validationSchema={categoryValidationSchema}
+      onSubmit={handleCategorySubmit}
+      enableReinitialize
       validateOnMount
     >
       {({ isSubmitting, isValid }) => (
@@ -66,10 +131,16 @@ export function CategoryForm({ onClose }: { onClose: () => void }) {
 
           <Button
             type="submit"
-            disabled={!isValid || isSubmitting}
+            disabled={!isValid || isSubmitting || isMutationPending}
             className="h-11 w-full rounded-[8px] text-base font-semibold"
           >
-            {isSubmitting ? "Adding..." : "Add Category"}
+            {isSubmitting || isMutationPending
+              ? isUpdateMode
+                ? "Updating..."
+                : "Adding..."
+              : isUpdateMode
+                ? "Update Category"
+                : "Add Category"}
           </Button>
         </Form>
       )}

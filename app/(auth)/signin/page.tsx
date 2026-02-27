@@ -7,6 +7,7 @@ import { useState } from "react";
 import * as yup from "yup";
 import { getApiErrorMessage } from "@/lib/api/error";
 import { useSignInMutation } from "@/lib/api/users";
+import { useSnackbar } from "@/store/hooks/use-snackbar";
 import { OnBoardingHeader } from "@/components/onboarding/header";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
@@ -31,18 +32,21 @@ const signInValidationSchema = yup.object({
 export default function SignInPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+  const { showSuccess, showError } = useSnackbar();
   const signInMutation = useSignInMutation();
 
   async function handleSubmit(
     values: SignInFormValues,
-    { setSubmitting, setStatus }: FormikHelpers<SignInFormValues>
+    { setSubmitting }: FormikHelpers<SignInFormValues>
   ) {
-    setStatus(undefined);
     try {
-      await signInMutation.mutateAsync(values);
+      const response = await signInMutation.mutateAsync(values);
+      showSuccess(response.message || "Login successful.");
       router.push("/dashboard");
     } catch (error) {
-      setStatus(getApiErrorMessage(error, "Unable to sign in."));
+      showError(getApiErrorMessage(error, "Unable to sign in."), {
+        title: "Login Failed",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -64,7 +68,7 @@ export default function SignInPage() {
           validationSchema={signInValidationSchema}
           onSubmit={handleSubmit}
         >
-          {({ isSubmitting, status }) => (
+          {({ isSubmitting }) => (
             <Form className="space-y-6">
               <FormikInput
                 name="email"
@@ -108,10 +112,6 @@ export default function SignInPage() {
                   ? "Logging in..."
                   : "Login"}
               </Button>
-
-              {typeof status === "string" ? (
-                <p className="text-sm text-red-600">{status}</p>
-              ) : null}
 
               <p className="text-center text-sm text-slate-400">
                 Don&apos;t have an account?{" "}

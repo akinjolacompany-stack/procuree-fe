@@ -5,11 +5,15 @@ import { cn } from "@/lib/utils";
 import { useField } from "formik";
 import { IconButton } from "./icon-button";
 
-type NativeInputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, "prefix">;
+type NativeInputProps = Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  "prefix"
+>;
 
 export type InputProps = NativeInputProps & {
   prefix?: React.ReactNode;
   suffix?: React.ReactNode;
+  suffix_1?: React.ReactNode;
 };
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
@@ -40,11 +44,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       <div
         className={cn(
           "flex w-full items-center rounded-lg border border-slate-300 bg-white focus-within:border-slate-400 focus-within:ring-2 focus-within:ring-slate-200",
-          className
+          className,
         )}
       >
         {prefix ? (
-          <span className="pl-4 text-xl leading-none text-slate-900">{prefix}</span>
+          <span className="pl-4 text-xl leading-none text-slate-900">
+            {prefix}
+          </span>
         ) : null}
         <input
           ref={setInputRef}
@@ -53,7 +59,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             prefix ? "pl-3" : "",
             suffix ? "pr-2" : "",
             isDateInput &&
-              "appearance-none [color-scheme:light] [&::-webkit-calendar-picker-indicator]:pointer-events-none [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-0"
+              "appearance-none [color-scheme:light] [&::-webkit-calendar-picker-indicator]:pointer-events-none [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-0",
           )}
           {...props}
         />
@@ -72,7 +78,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         ) : null}
       </div>
     );
-  }
+  },
 );
 
 Input.displayName = "Input";
@@ -90,6 +96,7 @@ export function FormikInput({
   className,
   prefix,
   suffix,
+  suffix_1,
   id,
   ...props
 }: FormikInputProps) {
@@ -104,15 +111,25 @@ export function FormikInput({
           {label}
         </label>
       ) : null}
-      <Input
-        id={inputId}
-        className={cn(showError ? "border-red-500 focus-within:border-red-500 focus-within:ring-red-100" : "", className)}
-        prefix={prefix}
-        suffix={suffix}
-        aria-invalid={showError}
-        {...field}
-        {...props}
-      />
+      <div className={'flex items-center gap-[16px]'}>
+        <Input
+          id={inputId}
+          className={cn(
+            showError
+              ? "border-red-500 focus-within:border-red-500 focus-within:ring-red-100"
+              : "",
+            className,
+          )}
+          prefix={prefix}
+          suffix={suffix}
+          aria-invalid={showError}
+          {...field}
+          {...props}
+          
+        />
+        {suffix_1}
+      </div>
+
       {showError ? (
         <p className="text-[11px] text-red-600">{meta.error}</p>
       ) : helperText ? (
@@ -127,7 +144,10 @@ type SelectOption = {
   value: string;
 };
 
-type FormikSelectProps = Omit<React.SelectHTMLAttributes<HTMLSelectElement>, "name"> & {
+type FormikSelectProps = Omit<
+  React.SelectHTMLAttributes<HTMLSelectElement>,
+  "name"
+> & {
   name: string;
   label?: string;
   helperText?: string;
@@ -160,8 +180,10 @@ export function FormikSelect({
         id={inputId}
         className={cn(
           "w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:opacity-60",
-          showError ? "border-red-500 focus:border-red-500 focus:ring-red-100" : "",
-          className
+          showError
+            ? "border-red-500 focus:border-red-500 focus:ring-red-100"
+            : "",
+          className,
         )}
         aria-invalid={showError}
         {...field}

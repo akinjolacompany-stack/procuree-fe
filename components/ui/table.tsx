@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
@@ -25,15 +25,24 @@ export type DataTableColumn<T extends TableRowData> = {
 };
 
 export type DataTablePagination = {
+  mode?: "local";
   pageSize?: number;
   initialPage?: number;
+};
+
+export type DataTableServerPagination = {
+  mode: "server";
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+  isLoading?: boolean;
 };
 
 export type DataTableProps<T extends TableRowData> = {
   columns: DataTableColumn<T>[];
   rows: T[];
   rowKey?: keyof T | ((row: T, rowIndex: number) => string);
-  pagination?: DataTablePagination;
+  pagination?: DataTablePagination | DataTableServerPagination;
   emptyState?: ReactNode;
   variant?: "default" | "clean";
   className?: string;
@@ -50,24 +59,47 @@ export function DataTable<T extends TableRowData>({
   className,
   tableClassName,
 }: DataTableProps<T>) {
-  const pageSize = pagination?.pageSize ?? 6;
-  const [currentPage, setCurrentPage] = useState(pagination?.initialPage ?? 1);
+  const localPagination =
+    pagination?.mode === "server" ? null : (pagination as DataTablePagination | undefined);
+  const serverPagination =
+    pagination?.mode === "server"
+      ? (pagination as DataTableServerPagination)
+      : null;
+  const pageSize = localPagination?.pageSize ?? 6;
+  const [currentPage, setCurrentPage] = useState(localPagination?.initialPage ?? 1);
 
-  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
-
-  useEffect(() => {
-    setCurrentPage((page) => Math.max(1, Math.min(page, totalPages)));
-  }, [totalPages]);
+  const totalPages = serverPagination
+    ? Math.max(1, serverPagination.totalPages)
+    : Math.max(1, Math.ceil(rows.length / pageSize));
+  const activePage = serverPagination
+    ? Math.max(1, Math.min(serverPagination.currentPage, totalPages))
+    : currentPage;
 
   const pageRows = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return rows.slice(start, start + pageSize);
-  }, [rows, currentPage, pageSize]);
+    if (serverPagination) {
+      return rows;
+    }
 
-  const pageItems = useMemo(() => getPaginationItems(currentPage, totalPages), [currentPage, totalPages]);
+    const start = (activePage - 1) * pageSize;
+    return rows.slice(start, start + pageSize);
+  }, [rows, serverPagination, activePage, pageSize]);
+
+  const pageItems = useMemo(
+    () => getPaginationItems(activePage, totalPages),
+    [activePage, totalPages],
+  );
 
   const onPageChange = (nextPage: number) => {
-    setCurrentPage(Math.max(1, Math.min(nextPage, totalPages)));
+    const normalizedNextPage = Math.max(1, Math.min(nextPage, totalPages));
+
+    if (serverPagination) {
+      if (normalizedNextPage !== activePage) {
+        serverPagination.onPageChange(normalizedNextPage);
+      }
+      return;
+    }
+
+    setCurrentPage(normalizedNextPage);
   };
 
   return (
@@ -145,11 +177,13 @@ export function DataTable<T extends TableRowData>({
         <div className="flex items-center justify-center gap-2 px-4 py-4 text-sm text-slate-600">
           <button
             type="button"
-            onClick={() => onPageChange(currentPage - 1)}
-            disabled={currentPage === 1}
+            onClick={() => onPageChange(activePage - 1)}
+            disabled={activePage === 1 || serverPagination?.isLoading}
             className={cn(
               "px-1 transition-colors",
-              currentPage === 1 ? "cursor-not-allowed text-slate-400" : "hover:text-slate-900"
+              activePage === 1 || serverPagination?.isLoading
+                ? "cursor-not-allowed text-slate-400"
+                : "hover:text-slate-900"
             )}
           >
             Prev
@@ -165,13 +199,14 @@ export function DataTable<T extends TableRowData>({
                 key={item}
                 type="button"
                 onClick={() => onPageChange(item)}
+                disabled={serverPagination?.isLoading}
                 className={cn(
                   "h-8 min-w-8 rounded-md border px-2 transition-colors",
-                  item === currentPage
+                  item === activePage
                     ? "border-emerald-700 bg-emerald-700 text-white"
                     : "border-slate-300 bg-white text-slate-600 hover:bg-slate-100"
                 )}
-                aria-current={item === currentPage ? "page" : undefined}
+                aria-current={item === activePage ? "page" : undefined}
               >
                 {item}
               </button>
@@ -180,11 +215,11 @@ export function DataTable<T extends TableRowData>({
 
           <button
             type="button"
-            onClick={() => onPageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
+            onClick={() => onPageChange(activePage + 1)}
+            disabled={activePage === totalPages || serverPagination?.isLoading}
             className={cn(
               "px-1 transition-colors",
-              currentPage === totalPages
+              activePage === totalPages || serverPagination?.isLoading
                 ? "cursor-not-allowed text-slate-400"
                 : "hover:text-slate-900"
             )}

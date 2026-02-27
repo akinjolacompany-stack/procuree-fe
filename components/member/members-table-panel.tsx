@@ -7,6 +7,8 @@ import { DataTable, type DataTableColumn } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { useMemo, useState } from "react";
 import { SearchIcon } from "../item/search-icon";
+import { Modal, ModalBody } from "../ui/modal";
+import { Invite } from "../dashboard/invite";
 
 type MemberStatus = "Active" | "Inactive" | "Pending";
 
@@ -224,6 +226,8 @@ function MemberAvatar({
 export function MembersTablePanel({ className }: { className?: string }) {
   const [searchTerm, setSearchTerm] = useState("");
 
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+
   const filteredMembers = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
     if (!query) {
@@ -244,7 +248,9 @@ export function MembersTablePanel({ className }: { className?: string }) {
     >
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="w-full max-w-[420px]">
-          <p className="text-[10px] font-bold uppercase text-[#98A2B3]">Members</p>
+          <p className="text-[10px] font-bold uppercase text-[#98A2B3]">
+            Members
+          </p>
           <Input
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
@@ -255,7 +261,11 @@ export function MembersTablePanel({ className }: { className?: string }) {
           />
         </div>
 
-        <Button type="button" className="h-10 min-w-[146px] rounded-[8px]">
+        <Button
+          onClick={() => setIsInviteModalOpen(true)}
+          type="button"
+          className="h-10 min-w-[146px] rounded-[8px]"
+        >
           Invite Member
         </Button>
       </div>
@@ -271,6 +281,17 @@ export function MembersTablePanel({ className }: { className?: string }) {
           emptyState="No members match your search."
         />
       </div>
+      <Modal
+        open={isInviteModalOpen}
+        onClose={() => setIsInviteModalOpen(false)}
+        title="Invite Member"
+        panelClassName="max-w-[560px]"
+        description="To invite someone to your team, simply enter their phone number, and we'll send them an invitation link to register. Alternatively, you can send the link directly to them, and once they register, they'll appear in the community."
+      >
+        <ModalBody className="space-y-4">
+          <Invite setIsInviteModalOpen={setIsInviteModalOpen} />
+        </ModalBody>
+      </Modal>
     </Card>
   );
 }

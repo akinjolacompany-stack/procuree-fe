@@ -2,17 +2,18 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
 
-
 export function AuthShell({ children }: { children: ReactNode }) {
   return (
-    <div className="grid grid-cols-[500px_1fr] min-h-screen">
-      <div className="relative w-full h-full">
-        <Image
-          src="/signUp.svg"
-          alt="On Boarding Image"
-          fill
-          className="object-cover rounded-[8px]"
-        />
+    <div className="grid grid-cols-[500px_1fr] min-h-screen  ">
+      <div className="p-[20px]">
+        <div className="relative w-full h-full ">
+          <Image
+            src="/signUp.svg"
+            alt="On Boarding Image"
+            fill
+            className="object-cover rounded-[8px]"
+          />
+        </div>
       </div>
 
       <main className="">

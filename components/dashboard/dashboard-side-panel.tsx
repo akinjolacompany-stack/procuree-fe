@@ -12,10 +12,17 @@ import { MembersNavIcon } from "../icons/members-nav-icon";
 import { MessageIcon } from "../icons/message";
 import { MoneyIcon } from "../icons/money";
 import { Invite } from "./invite";
-import PanelDetailItem, { type PanelStatus, type SidePanelItem } from "./pannelDetailItem";
+import PanelDetailItem, {
+  type PanelStatus,
+  type SidePanelItem,
+} from "./pannelDetailItem";
 import StatusHambuger from "./statusHambuger";
 
-const MARKET_RUN_OPTIONS: Array<{ label: string; value: string; status: PanelStatus }> = [
+const MARKET_RUN_OPTIONS: Array<{
+  label: string;
+  value: string;
+  status: PanelStatus;
+}> = [
   { label: "Dry Goods - 11/09/2024", value: "dry-goods", status: "Reconciled" },
   { label: "Fruits - 21/01/2025", value: "fruits", status: "Open" },
   { label: "Grains - 17/01/2025", value: "grains", status: "Closed" },
@@ -70,7 +77,8 @@ export function DashboardSidePanel({ className }: { className?: string }) {
   const [selectedRun, setSelectedRun] = useState(MARKET_RUN_OPTIONS[0].value);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const selectedRunOption =
-    MARKET_RUN_OPTIONS.find((option) => option.value === selectedRun) ?? MARKET_RUN_OPTIONS[0];
+    MARKET_RUN_OPTIONS.find((option) => option.value === selectedRun) ??
+    MARKET_RUN_OPTIONS[0];
 
   return (
     <div className={cn("space-y-4", className)}>
@@ -103,7 +111,6 @@ export function DashboardSidePanel({ className }: { className?: string }) {
           variant="secondary"
           size="xs"
           onClick={() => setIsInviteModalOpen(true)}
-          className="mt-3 h-7 min-w-[74px] rounded-[6px] bg-white px-3 text-[11px] font-medium text-slate-700 hover:bg-slate-100"
         >
           Invite
         </Button>

@@ -1,68 +1,84 @@
 "use client";
 
-import { CautionIcon } from "@/components/icons/caution";
 import ItemHeader from "@/components/item/item-add-item-header";
 import { Button } from "@/components/ui/button";
-import { FormikImageUploadInput } from "@/components/ui/image-upload-input";
 import { FormikInput, FormikSelect } from "@/components/ui/input";
+import { useCategoriesQuery } from "@/lib/api/categories";
+import { getApiErrorMessage } from "@/lib/api/error";
+import { useItemFlowStore } from "@/store";
 import { Form, Formik, type FormikHelpers } from "formik";
 import { useRouter } from "next/navigation";
+import { useMemo } from "react";
 import * as yup from "yup";
 
 type ItemDetailsFormValues = {
-  image: File | null;
   itemName: string;
-  category: string;
-  baseUnit: string;
+  categoryId: string;
+  baseUnitId: string;
 };
-
-const initialValues: ItemDetailsFormValues = {
-  image: null,
-  itemName: "",
-  category: "",
-  baseUnit: "",
-};
-
-const categoryOptions = [
-  { label: "Grains", value: "grains" },
-  { label: "Oils", value: "oils" },
-  { label: "Beverages", value: "beverages" },
-  { label: "Cosmetics", value: "cosmetics" },
-];
-
-const baseUnitOptions = [
-  { label: "Cups", value: "cups" },
-  { label: "Bottle", value: "bottle" },
-  { label: "Sachet", value: "sachet" },
-  { label: "Kg", value: "kg" },
-];
 
 const validationSchema = yup.object({
-  image: yup
-    .mixed<File>()
-    .nullable()
-    .required("Item image is required")
-    .test("file-type", "Only JPEG and PNG files are allowed", (value) => {
-      if (!value) {
-        return false;
-      }
-      return ["image/jpeg", "image/png"].includes(value.type);
-    }),
   itemName: yup.string().trim().required("Item name is required"),
-  category: yup.string().trim().required("Category is required"),
-  baseUnit: yup.string().trim().required("Base unit is required"),
+  categoryId: yup.string().trim().required("Category is required"),
+  baseUnitId: yup.string().trim().required("Base unit is required"),
 });
 
 export default function ItemDetailsPage() {
   const router = useRouter();
+  const {
+    itemFlowMode,
+    editingCommodityId,
+    itemDetailsDraft,
+    setItemDetailsDraft,
+    resetItemFlow,
+  } =
+    useItemFlowStore();
+  const categoriesQuery = useCategoriesQuery({
+    page: 1,
+    perPage: 200,
+  });
+
+  const categoryOptions = useMemo(
+    () =>
+      (categoriesQuery.data?.data.data ?? []).map((category) => ({
+        label: category.name,
+        value: category.id,
+      })),
+    [categoriesQuery.data?.data.data],
+  );
+
+  const categoriesErrorMessage = categoriesQuery.isError
+    ? getApiErrorMessage(categoriesQuery.error, "Unable to load categories.")
+    : null;
+
+  const initialValues = useMemo<ItemDetailsFormValues>(
+    () => ({
+      itemName: itemDetailsDraft.itemName,
+      categoryId: itemDetailsDraft.categoryId,
+      baseUnitId: itemDetailsDraft.baseUnitId,
+    }),
+    [
+      itemDetailsDraft.baseUnitId,
+      itemDetailsDraft.categoryId,
+      itemDetailsDraft.itemName,
+    ],
+  );
 
   async function handleSubmit(
-    _values: ItemDetailsFormValues,
+    values: ItemDetailsFormValues,
     { setSubmitting }: FormikHelpers<ItemDetailsFormValues>,
   ) {
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    setItemDetailsDraft({
+      itemName: values.itemName.trim(),
+      categoryId: values.categoryId,
+      baseUnitId: values.baseUnitId,
+    });
     setSubmitting(false);
-    router.push("/items/conversions");
+    const nextRoute =
+      itemFlowMode === "update" && editingCommodityId
+        ? `/items/${editingCommodityId}/conversions`
+        : "/items/conversions";
+    router.push(nextRoute);
   }
 
   return (
@@ -73,14 +89,16 @@ export default function ItemDetailsPage() {
         initialValues={initialValues}
         validationSchema={validationSchema}
         onSubmit={handleSubmit}
+        enableReinitialize
         validateOnMount
       >
         {({ isSubmitting, isValid }) => (
           <Form className="mt-4 space-y-3">
-            <FormikImageUploadInput
+            {/* Image upload temporarily disabled: commodity API does not accept image yet. */}
+            {/* <FormikImageUploadInput
               name="image"
               accept=".jpg,.jpeg,.png,image/jpeg,image/png"
-            />
+            /> */}
 
             <FormikInput
               name="itemName"
@@ -89,17 +107,22 @@ export default function ItemDetailsPage() {
             />
 
             <FormikSelect
-              name="category"
+              name="categoryId"
               label="Category"
               options={categoryOptions}
-              placeholder="Select Category"
+              placeholder={
+                categoriesQuery.isPending ? "Loading categories..." : "Select Category"
+              }
+              disabled={categoriesQuery.isPending || Boolean(categoriesErrorMessage)}
             />
+            {categoriesErrorMessage ? (
+              <p className="text-xs text-red-600">{categoriesErrorMessage}</p>
+            ) : null}
 
-            <FormikSelect
-              name="baseUnit"
+            <FormikInput
+              name="baseUnitId"
               label="Base Unit (Smallest unit)"
-              options={baseUnitOptions}
-              placeholder="Select base unit"
+              placeholder="e.g. Kg"
             />
 
             <div className="flex items-center gap-4 pt-2">
@@ -107,14 +130,22 @@ export default function ItemDetailsPage() {
                 type="button"
                 color="slate"
                 variant="outline"
-                onClick={() => router.push("/items")}
+                onClick={() => {
+                  resetItemFlow();
+                  router.push("/items");
+                }}
                 className="w-full"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
-                disabled={!isValid || isSubmitting}
+                disabled={
+                  !isValid ||
+                  isSubmitting ||
+                  categoriesQuery.isPending ||
+                  Boolean(categoriesErrorMessage)
+                }
                 className="w-full"
               >
                 {isSubmitting ? "Saving..." : "Next : Conversions"}

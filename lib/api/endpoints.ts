@@ -1,6 +1,7 @@
 export const API_ENDPOINTS = {
   users: {
     signIn: "/user/signin",
+    createAdmin: "/user/admin",
   },
   categories: {
     index: "/category",

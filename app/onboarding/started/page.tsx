@@ -8,17 +8,12 @@ import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { FormikInput } from "@/components/ui/input";
 import { OnBoardingHeader } from "@/components/onboarding/header";
+import { useOnboardingFlowStore } from "@/store";
 
 type StartedFormValues = {
   email: string;
   password: string;
   confirmPassword: string;
-};
-
-const initialValues: StartedFormValues = {
-  email: "",
-  password: "",
-  confirmPassword: "",
 };
 
 const startedValidationSchema = yup.object({
@@ -39,14 +34,24 @@ const startedValidationSchema = yup.object({
 
 export default function StartedPage() {
   const router = useRouter();
+  const { onboardingDraft, setOnboardingDraft } = useOnboardingFlowStore();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const initialValues: StartedFormValues = {
+    email: onboardingDraft.email,
+    password: onboardingDraft.password,
+    confirmPassword: onboardingDraft.confirmPassword,
+  };
 
-  async function handleSubmit(
-    _values: StartedFormValues,
+  function handleSubmit(
+    values: StartedFormValues,
     { setSubmitting }: FormikHelpers<StartedFormValues>,
   ) {
-    await new Promise((resolve) => setTimeout(resolve, 400));
+    setOnboardingDraft({
+      email: values.email.trim(),
+      password: values.password,
+      confirmPassword: values.confirmPassword,
+    });
     setSubmitting(false);
     router.push("/onboarding/verify");
   }
@@ -63,6 +68,7 @@ export default function StartedPage() {
         initialValues={initialValues}
         validationSchema={startedValidationSchema}
         onSubmit={handleSubmit}
+        enableReinitialize
       >
         {({ isSubmitting }) => (
           <Form className="space-y-4">

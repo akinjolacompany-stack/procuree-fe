@@ -3,6 +3,7 @@ export { snackbar } from "./snackbar";
 export type { AppStore } from "./types";
 export { useItemFlowStore } from "./hooks/use-item-flow-store";
 export { useMarketRunFlowStore } from "./hooks/use-market-run-flow-store";
+export { useOnboardingFlowStore } from "./hooks/use-onboarding-flow-store";
 export type {
   DashboardSlice,
   DashboardStatusFilter,
@@ -19,6 +20,10 @@ export type {
   MarketRunFlowSlice,
 } from "./slices/market-run-flow-slice";
 export { DEFAULT_MARKET_RUN_MAX_QTY } from "./slices/market-run-flow-slice";
+export type {
+  OnboardingDraft,
+  OnboardingFlowSlice,
+} from "./slices/onboarding-flow-slice";
 export type {
   UiSlice,
   SnackbarOptions,

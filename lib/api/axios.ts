@@ -6,6 +6,16 @@ const API_BASE_URL =
   "http://localhost:3008";
 
 const ACCESS_TOKEN_STORAGE_KEY = "procureefe_access_token";
+const USER_PROFILE_STORAGE_KEY = "procureefe_user_profile";
+
+export type ApiUserProfile = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  role?: string;
+  groupId?: string;
+};
 
 type ApiLifecycleHandlers = {
   onRequest?: (config: InternalAxiosRequestConfig) => void;
@@ -37,6 +47,43 @@ function readAccessTokenFromStorage(): string | null {
 
   try {
     return window.localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function readUserProfileFromStorage(): ApiUserProfile | null {
+  if (!isBrowser()) {
+    return null;
+  }
+
+  try {
+    const serializedProfile = window.localStorage.getItem(USER_PROFILE_STORAGE_KEY);
+    if (!serializedProfile) {
+      return null;
+    }
+
+    const parsedProfile = JSON.parse(serializedProfile) as Partial<ApiUserProfile>;
+    if (
+      typeof parsedProfile.firstName !== "string" ||
+      typeof parsedProfile.lastName !== "string" ||
+      typeof parsedProfile.email !== "string" ||
+      typeof parsedProfile.phone !== "string"
+    ) {
+      return null;
+    }
+
+    return {
+      firstName: parsedProfile.firstName,
+      lastName: parsedProfile.lastName,
+      email: parsedProfile.email,
+      phone: parsedProfile.phone,
+      role: typeof parsedProfile.role === "string" ? parsedProfile.role : undefined,
+      groupId:
+        typeof parsedProfile.groupId === "string"
+          ? parsedProfile.groupId
+          : undefined,
+    };
   } catch {
     return null;
   }
@@ -147,6 +194,27 @@ export function clearApiAccessToken() {
   }
 
   window.localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY);
+  window.localStorage.removeItem(USER_PROFILE_STORAGE_KEY);
+}
+
+export function setApiUserProfile(profile: ApiUserProfile) {
+  if (!isBrowser()) {
+    return;
+  }
+
+  window.localStorage.setItem(USER_PROFILE_STORAGE_KEY, JSON.stringify(profile));
+}
+
+export function getApiUserProfile(): ApiUserProfile | null {
+  return readUserProfileFromStorage();
+}
+
+export function clearApiUserProfile() {
+  if (!isBrowser()) {
+    return;
+  }
+
+  window.localStorage.removeItem(USER_PROFILE_STORAGE_KEY);
 }
 
 export function isApiNetworkAvailable(): boolean {
@@ -156,4 +224,5 @@ export function isApiNetworkAvailable(): boolean {
 export const apiConfig = {
   baseURL: API_BASE_URL,
   accessTokenStorageKey: ACCESS_TOKEN_STORAGE_KEY,
+  userProfileStorageKey: USER_PROFILE_STORAGE_KEY,
 } as const;

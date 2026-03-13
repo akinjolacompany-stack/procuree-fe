@@ -1,6 +1,7 @@
 "use client";
 
 import { ProcureeLogo } from "@/components/icons/procuree-logo";
+import { getApiUserProfile, type ApiUserProfile } from "@/lib/api/axios";
 import { useEffect, useRef, useState } from "react";
 import { IconButton } from "../ui/icon-button";
 import { ArrowDownIcon } from "../icons/arrowDown";
@@ -14,7 +15,24 @@ type AppHeaderProps = {
 
 export function AppHeader({ activePath }: AppHeaderProps) {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [currentUserProfile, setCurrentUserProfile] = useState<ApiUserProfile | null>(
+    null,
+  );
   const notificationAreaRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setCurrentUserProfile(getApiUserProfile());
+
+    const handleStorageUpdate = (event: StorageEvent) => {
+      if (event.key !== null && event.key !== "procureefe_user_profile") {
+        return;
+      }
+      setCurrentUserProfile(getApiUserProfile());
+    };
+
+    window.addEventListener("storage", handleStorageUpdate);
+    return () => window.removeEventListener("storage", handleStorageUpdate);
+  }, []);
 
   useEffect(() => {
     if (!isNotificationOpen) {
@@ -66,7 +84,9 @@ export function AppHeader({ activePath }: AppHeaderProps) {
         </div>
 
         <div className="flex items-center gap-[10px] px-[10px] py-[3px]">
-          Atinuke Daniels
+          {currentUserProfile
+            ? `${currentUserProfile.firstName} ${currentUserProfile.lastName}`
+            : "User"}
           <div className="flex h-[36px] w-[36px] items-center justify-center rounded-full bg-[#B4D1C4]">
             <img src="/avatar.svg" alt="User avatar" />
           </div>

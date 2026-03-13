@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { IconButton } from "@/components/ui/icon-button";
 import { DataTable, type DataTableColumn } from "@/components/ui/table";
+import { getApiUserProfile } from "@/lib/api/axios";
 import { useRouter } from "next/navigation";
 import type { DashboardStatusFilter, MarketRunRow } from "@/store";
 import {
@@ -53,6 +54,8 @@ const columns: DataTableColumn<MarketRunRow>[] = [
 export default function DashboardPage() {
   const router = useRouter();
   const rows = useDashboardRows();
+  const currentUserProfile = getApiUserProfile();
+  const firstName = currentUserProfile?.firstName ?? "there";
 
   return (
     <>
@@ -61,7 +64,7 @@ export default function DashboardPage() {
           Dashboard
         </h3>
         <p className={"text-base font-medium leading-6 text-[#1F2933]"}>
-          {"Hello Atinuke!"}
+          {`Hello ${firstName}!`}
         </p>
       </div>
       <div className="grid grid-cols-8 gap-[24px] mt-[20px]">

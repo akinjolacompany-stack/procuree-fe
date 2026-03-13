@@ -6,6 +6,7 @@ import * as yup from "yup";
 import { Button } from "@/components/ui/button";
 import { OtpInput } from "@/components/ui/otp-input";
 import { OnBoardingHeader } from "@/components/onboarding/header";
+import { useOnboardingFlowStore } from "@/store";
 
 type VerifyFormValues = {
   code: string;
@@ -21,17 +22,18 @@ const verifyValidationSchema = yup.object({
   code: yup
     .string()
     .required("Verification code is required")
-    .matches(/^\d{6}$/, "Enter the 6-digit code"),
+    .matches(/^\d{6}$/, "Enter the 6-digit code")
+    .oneOf(["000000"], "For now, use 000000 as the OTP"),
 });
 
 export default function VerifyPage() {
   const router = useRouter();
+  const { onboardingDraft } = useOnboardingFlowStore();
 
-  async function handleSubmit(
+  function handleSubmit(
     _values: VerifyFormValues,
     { setSubmitting }: FormikHelpers<VerifyFormValues>,
   ) {
-    await new Promise((resolve) => setTimeout(resolve, 400));
     setSubmitting(false);
     router.push("/onboarding/personal-info");
   }
@@ -41,7 +43,9 @@ export default function VerifyPage() {
       <OnBoardingHeader
         icon="/inbox.svg"
         title="Let's get you started!"
-        subtitle="We've sent a 6-digit code to johndoe@email.com to verify your email. This keeps your account secure."
+        subtitle={`We've sent a 6-digit code to ${
+          onboardingDraft.email || "your email"
+        } to verify your email. This keeps your account secure.`}
       />
 
       <Formik

@@ -18,8 +18,8 @@ import { useMemo, useState } from "react";
 type MarketRunIndexTableRow = {
   id: string;
   description: string;
-  orderDate: string;
-  dueDate: string;
+  orderDate: string | null;
+  dueDate: string | null;
   items: string;
   members: string;
   status: string;
